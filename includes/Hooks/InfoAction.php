@@ -26,6 +26,8 @@ use IContextSource;
 use MediaWiki\Extension\WikiSEO\Validator;
 use MediaWiki\Hook\InfoActionHook;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Page\PageProps;
+use MediaWiki\Title\TitleFactory;
 use Message;
 use RepoGroup;
 use Title;
@@ -36,13 +38,20 @@ class InfoAction implements InfoActionHook {
 	 */
 	private $repoGroup;
 
-	/**
-	 * InfoAction constructor.
-	 *
-	 * @param RepoGroup $repoGroup
-	 */
-	public function __construct( RepoGroup $repoGroup ) {
+    private $pageProps;
+    private $titleFactory;
+
+    /**
+     * InfoAction constructor.
+     *
+     * @param RepoGroup $repoGroup
+     * @param PageProps $pageProps
+     * @param TitleFactory $titleFactory
+     */
+	public function __construct( RepoGroup $repoGroup, PageProps $pageProps, TitleFactory $titleFactory) {
 		$this->repoGroup = $repoGroup;
+        $this->pageProps = $pageProps;
+        $this->titleFactory = $titleFactory;
 	}
 
 	/**
@@ -53,7 +62,7 @@ class InfoAction implements InfoActionHook {
 	 * @return bool|void
 	 */
 	public function onInfoAction( $context, &$pageInfo ) {
-		$properties = MediaWikiServices::getInstance()->getPageProps()->getProperties(
+		$properties = $this->pageProps->getProperties(
 			$context->getTitle(),
 			Validator::getValidParams()
 		);
@@ -145,7 +154,7 @@ class InfoAction implements InfoActionHook {
 	 * @return string
 	 */
 	private function formatImage( ?string $value ): string {
-		$title = Title::newFromText( $value, NS_FILE );
+		$title = $this->titleFactory->newFromText( $value, NS_FILE );
 
 		if ( $title === null || !$title->exists() || !$title->inNamespace( NS_FILE ) ) {
 			return $value;
@@ -178,7 +187,7 @@ class InfoAction implements InfoActionHook {
 			return $value;
 		}
 
-		$title = Title::newFromText( ltrim( $parsed['path'], '/' ), NS_USER );
+		$title = $this->titleFactory->newFromText( ltrim( $parsed['path'], '/' ), NS_USER );
 
 		if ( $title === null ) {
 			return $value;
